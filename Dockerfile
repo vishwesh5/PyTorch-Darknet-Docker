@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.2-base-ubuntu16.04
+FROM nvidia/cuda:8.0-cudnn7-devel-ubuntu16.04 AS build-env
 
 LABEL maintainer="Vishwesh Ravi Shrimali <vishweshshrimali5@gmail.com>"
 
@@ -198,6 +198,7 @@ RUN	conda install -y xeus-cling notebook -c QuantStack -c conda-forge && \
 	conda install -y -n OpenCV-"$cvVersion"-py3 numpy scipy matplotlib scikit-image scikit-learn ipython ipykernel pandas && \
         conda install -y -n OpenCV-"$cvVersion"-py3 pytorch -c pytorch && \
         conda install -y -n OpenCV-"$cvVersion"-py3 torchvision -c pytorch && \
+        conda install -y -n OpenCV-"$cvVersion"-py3 -c pytorch -c fastai fastai && \
         conda clean --all -y && \
         /bin/bash -c "source $CONDA_DIR/bin/activate OpenCV-\"$cvVersion\"-py3 && \
         python -m pip install tensorflow && \
@@ -254,7 +255,39 @@ ENV     PATH $CONDA_DIR/bin:$PATH
 RUN     chown $NB_USER:$NB_GID $CONDA_DIR && \
         rm /opt/conda/envs/OpenCV-"$cvVersion"-py3/lib/libfontconfig.so.1 && \
         rm -rf $cwd/opencv && \
-        rm -rf $cwd/opencv_contrib && \
+        rm -rf $cwd/opencv_contrib
+
+WORKDIR $HOME
+
+RUN     ln -s /usr/local/cuda-8.0 /usr/local/cuda && \
+        git clone https://github.com/pjreddie/darknet.git && \
+        sed -i -e s/GPU=0/GPU=1/ darknet/Makefile && \
+        sed -i -e s/CUDNN=0/CUDNN=1/ darknet/Makefile && \ 
+        cd darknet && \
+        make && \
+        cd .. && \
+        mv darknet darknet_pjreddie_gpu && \
+        git clone https://github.com/AlexeyAB/darknet.git && \
+        sed -i -e s/GPU=0/GPU=1/ darknet/Makefile && \
+        sed -i -e s/CUDNN=0/CUDNN=1/ darknet/Makefile && \
+        mv darknet darknet_alexeyab_gpu && \
+        cd darknet_alexeyab_gpu && \
+        make && \
+        cd .. && \
+        git clone https://github.com/pjreddie/darknet.git && \
+        sed -i -e s/OPENMP=0/OPENMP=1/ darknet/Makefile && \
+        cd darknet && \
+        make && \
+        cd .. && \
+        mv darknet darknet_pjreddie_cpu && \
+        git clone https://github.com/AlexeyAB/darknet.git && \
+        sed -i -e s/OPENMP=0/OPENMP=1/ darknet/Makefile && \
+        mv darknet darknet_alexeyab_cpu && \
+        cd darknet_alexeyab_cpu && \
+        make && \
+        cd ..
+
+RUN     chown $NB_USER:$NB_GID $HOME
 
 USER $NB_UID
 
