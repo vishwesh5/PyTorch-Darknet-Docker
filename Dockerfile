@@ -75,7 +75,7 @@ RUN 	mkdir /home/$NB_USER/work && \
     	rm -rf /home/$NB_USER/.cache/yarn && \
     	fix-permissions $CONDA_DIR && \
     	fix-permissions /home/$NB_USER && \
- 	conda install --quiet --yes 'tini=0.18.0' && \
+ 	$CONDA_DIR/bin/conda install --quiet --yes 'tini=0.18.0' && \
     	$CONDA_DIR/bin/conda list tini | grep tini | tr -s ' ' | cut -d ' ' -f 1,2 >> $CONDA_DIR/conda-meta/pinned && \
     	$CONDA_DIR/bin/conda clean -tipsy && \
     	fix-permissions $CONDA_DIR && \
